@@ -9,7 +9,7 @@ The goal is simple: teams import mltracker and never call MLflow directly. This 
 ### 1. Install in your training repo
 
 ```bash
-pip install git+https://github.com/Analytics-MVIS/ml-tracker.git
+pip install git+https://github.com/Analytics-MVIS/ml-training-tracker.git
 ```
 
 ### 2. Set tracking URI once
@@ -81,25 +81,25 @@ Choose one of these modes depending on whether you are using the SDK or contribu
 Install from GitHub default branch (currently `main`):
 
 ```bash
-pip install git+https://github.com/Analytics-MVIS/ml-tracker.git
+pip install git+https://github.com/Analytics-MVIS/ml-training-tracker.git
 ```
 
 Equivalent explicit ref:
 
 ```bash
-pip install git+https://github.com/Analytics-MVIS/ml-tracker.git@main
+pip install git+https://github.com/Analytics-MVIS/ml-training-tracker.git@main
 ```
 
 Using uv:
 
 ```bash
-uv add git+https://github.com/Analytics-MVIS/ml-tracker.git
+uv add git+https://github.com/Analytics-MVIS/ml-training-tracker.git
 ```
 
 For strict reproducibility, pin to a commit SHA instead of a tag:
 
 ```bash
-pip install git+https://github.com/Analytics-MVIS/ml-tracker.git@<commit-sha>
+pip install git+https://github.com/Analytics-MVIS/ml-training-tracker.git@<commit-sha>
 ```
 
 Use this path for all model teams that only need to log experiments.
@@ -109,7 +109,7 @@ Use this path for all model teams that only need to log experiments.
 Clone and install in editable mode:
 
 ```bash
-git clone https://github.com/Analytics-MVIS/ml-tracker.git
+git clone https://github.com/Analytics-MVIS/ml-training-tracker.git
 cd ml-tracker
 pip install -e .[dev]
 ```
