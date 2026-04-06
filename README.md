@@ -9,7 +9,7 @@ The goal is simple: teams import mltracker and never call MLflow directly. This 
 ### 1. Install in your training repo
 
 ```bash
-pip install git+https://github.com/Analytics-MVIS/ml-tracker.git@v0.2.0
+pip install git+https://github.com/Analytics-MVIS/ml-tracker.git
 ```
 
 ### 2. Set tracking URI once
@@ -78,10 +78,22 @@ Choose one of these modes depending on whether you are using the SDK or contribu
 
 ### 1. Use mltracker in your training project (recommended)
 
-Install from GitHub using a release tag:
+Install from GitHub default branch (currently `main`):
 
 ```bash
-pip install git+https://github.com/Analytics-MVIS/ml-tracker.git@v0.2.0
+pip install git+https://github.com/Analytics-MVIS/ml-tracker.git
+```
+
+Equivalent explicit ref:
+
+```bash
+pip install git+https://github.com/Analytics-MVIS/ml-tracker.git@main
+```
+
+Using uv:
+
+```bash
+uv add git+https://github.com/Analytics-MVIS/ml-tracker.git
 ```
 
 For strict reproducibility, pin to a commit SHA instead of a tag:
