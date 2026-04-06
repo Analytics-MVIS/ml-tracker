@@ -4,6 +4,16 @@ mltracker is an internal SDK that standardizes experiment tracking for all teams
 
 The goal is simple: teams import mltracker and never call MLflow directly. This keeps configuration, metadata, artifact layout, and run status handling consistent across projects.
 
+## Security and privacy first
+
+Before using mltracker in any project, follow these rules:
+
+- Never commit private data, credentials, tokens, customer identifiers, or internal host details to this repository.
+- Never log sensitive values in MLflow params, tags, artifact filenames, or model names.
+- Use placeholders in shared examples and docs, for example `https://your-mlflow-server:5000`.
+- Keep secrets in environment variables or a secret manager, not in code.
+- Review artifacts before logging (images, reports, CSV exports) to ensure they do not contain sensitive information.
+
 ## What you get
 
 - Enforced schemas for YOLO and classification runs
@@ -78,65 +88,106 @@ tracker = YoloTracker(
 )
 ```
 
-## Quick start (YOLO)
+## Two-step defect identification flow
+
+Many teams follow a two-step flow:
+
+1. Defect detection model finds candidate defects in component images, for example spring defects.
+2. Defect classification model is retrained or fine-tuned to identify the exact defect class.
+
+The examples below show this flow using safe placeholders only.
+
+## Step 1: Detection tracking (spring defect candidate detection)
 
 ```python
 from mltracker.configs import YoloConfig
 from mltracker.trackers import YoloTracker
 
 cfg = YoloConfig(
-	project="vision-detection",
-	run_name="yolo-v8n-baseline",
+	project="defect-detection",
+	run_name="spring-detector-v1",
 	model="yolov8n.pt",
-	data="datasets/coco128.yaml",
-	epochs=50,
+	data="datasets/spring_detection.yaml",
+	epochs=80,
 	imgsz=640,
 	batch=16,
 	lr0=0.01,
 	optimizer="SGD",
-	extra_params={"team": "vision", "ticket": "ML-341"},
+	extra_params={
+		"pipeline.step": "detection",
+		"component": "spring",
+		"dataset.version": "safe-placeholder-v1",
+	},
 )
 
 with YoloTracker(
-	experiment_name="YOLO",
-	config=cfg,
-	tracking_uri="https://your-mlflow-server:5000",
+    experiment_name="defect-detection",
+    config=cfg,
+    tracking_uri="https://your-mlflow-server:5000",
 ) as tracker:
-	tracker.log_metric("mAP50", 0.72)
-	tracker.log_metric("mAP50-95", 0.46)
+    tracker.log_metric("mAP50", 0.74)
+    tracker.log_metric("recall", 0.81)
 
-	# Logs best.pt and last.pt from weights directory.
-	# model_name controls the artifact filename used for best weights in MLflow.
-	tracker.log_best_model(
-		weights_path="runs/train/exp42/weights",
-		model_name="yolo-v8n-coco128",
-		register_name="vision-yolo-detector",
-	)
+    # Logs best.pt and last.pt with a clear artifact name.
+    tracker.log_best_model(
+        weights_path="runs/train/spring_detector/weights",
+        model_name="spring-defect-detector-v1",
+        register_name="defect-detector",
+    )
 
-	tracker.log_confusion_matrix("runs/train/exp42/confusion_matrix.png")
-	tracker.log_validation_images("runs/train/exp42/val_batch")
+    tracker.log_confusion_matrix("runs/train/spring_detector/confusion_matrix.png")
+    tracker.log_validation_images("runs/train/spring_detector/val_images")
 ```
 
-## Quick start (Classification)
+## Step 2: Classification tracking (defect class identification)
 
 ```python
 from mltracker.configs import ClassificationConfig
 from mltracker.trackers import ClassificationTracker
 
 cfg = ClassificationConfig(
-	project="vision-classification",
-	run_name="resnet50-v1",
+	project="defect-classification",
+	run_name="spring-defect-classifier-v1",
 	model_name="resnet50",
-	dataset_name="imagenet-subset",
-	epochs=20,
-	learning_rate=0.001,
+	dataset_name="spring_defect_patches",
+	epochs=30,
+	learning_rate=0.0005,
 	batch_size=32,
-	num_classes=10,
+	num_classes=6,
+	extra_params={
+		"pipeline.step": "classification",
+		"source.detector": "spring-defect-detector-v1",
+		"retrain.reason": "new defect classes",
+	},
 )
 
-with ClassificationTracker(experiment_name="Classification", config=cfg) as tracker:
-	tracker.log_metrics({"val_acc": 0.91, "val_loss": 0.28}, step=20)
+with ClassificationTracker(
+	experiment_name="defect-classification",
+	config=cfg,
+	tracking_uri="https://your-mlflow-server:5000",
+) as tracker:
+	tracker.log_metrics({"val_acc": 0.92, "val_loss": 0.24}, step=30)
+
+	tracker.log_model(
+		model_path="runs/classifier/best.onnx",
+		model_name="spring-defect-classifier-v1",
+		artifact_path="model",
+		register_name="defect-classifier",
+	)
 ```
+
+## Suggested naming convention for this flow
+
+Use consistent and non-sensitive names so runs are easy to search in MLflow:
+
+- Experiments: `defect-detection`, `defect-classification`
+- Run names: `<component>-<task>-v<version>`
+- Model names: `<component>-defect-detector-v<version>`, `<component>-defect-classifier-v<version>`
+
+Example:
+
+- `spring-defect-detector-v1`
+- `spring-defect-classifier-v1`
 
 ## Model logging with proper names
 
