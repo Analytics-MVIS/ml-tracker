@@ -4,6 +4,55 @@ mltracker is an internal SDK that standardizes experiment tracking for all teams
 
 The goal is simple: teams import mltracker and never call MLflow directly. This keeps configuration, metadata, artifact layout, and run status handling consistent across projects.
 
+## Quick start (recommended path for most teams)
+
+### 1. Install in your training repo
+
+```bash
+pip install git+https://github.com/Analytics-MVIS/ml-tracker.git@v0.2.0
+```
+
+### 2. Set tracking URI once
+
+```bash
+export MLTRACK_TRACKING_URI="https://your-mlflow-server:5000"
+```
+
+### 3. Wrap your train loop with tracker
+
+```python
+from mltracker.configs import ClassificationConfig
+from mltracker.trackers import ClassificationTracker
+
+cfg = ClassificationConfig(
+	project="axle-bolt-classification",
+	run_name="resnet101-v1",
+	model_name="resnet101",
+	dataset_name="dataset4",
+	epochs=50,
+	learning_rate=0.001,
+	batch_size=16,
+	num_classes=2,
+)
+
+with ClassificationTracker(
+	experiment_name="axle-bolt-classification",
+	config=cfg,
+) as tracker:
+	# inside your training loop
+	tracker.log_metric("train_loss", 0.42, step=1)
+	tracker.log_metric("val_acc", 91.8, step=1)
+
+	# after training completes
+	tracker.log_model(
+		model_path="outputs/best.pt",
+		model_name="resnet101-v1",
+		register_name="axle-bolt-classifier",
+	)
+```
+
+If your training raises an exception, mltracker marks the run as `FAILED` automatically.
+
 ## Security and privacy first
 
 Before using mltracker in any project, follow these rules:
@@ -87,6 +136,66 @@ tracker = YoloTracker(
 	tracking_uri="https://your-mlflow-server:5000",
 )
 ```
+
+## Use with existing team scripts (minimal rewrite)
+
+Many team scripts already use keys like `num_epochs`, `learning_rate`, `batch_size`, `dataset`, `experiment_name`, or `name`.
+
+You can pass those dictionaries directly using factories and keep your script mostly unchanged.
+
+### Option A: Build config from a dict
+
+```python
+from mltracker.configs import classification_config_from_dict
+from mltracker.trackers import ClassificationTracker
+
+train_params = {
+	"experiment": "axle-bolt-classification",
+	"run": "resnet101-05022026",
+	"architecture": "resnet101",
+	"dataset": "dataset4",
+	"num_epochs": 50,
+	"lr": 0.001,
+	"batch": 16,
+	"class_count": 2,
+	"weight_decay": 1e-4,
+}
+
+cfg = classification_config_from_dict(train_params)
+
+with ClassificationTracker(experiment_name="axle-bolt-classification", config=cfg) as tracker:
+	tracker.log_metric("val_acc", 92.3, step=50)
+```
+
+### Option B: Build tracker directly from a dict
+
+```python
+from mltracker import build_tracker
+
+yolo_params = {
+	"experiment_name": "door-defects",
+	"name": "vertical_retrain",
+	"model": "yolov8m.pt",
+	"data": "datasets/door/data.yaml",
+	"num_epochs": 200,
+	"input_size": 640,
+	"batch_size": 16,
+	"learning_rate": 0.01,
+	"exist_ok": True,
+}
+
+tracker = build_tracker(
+	"yolo",
+	experiment_name="door-defect-detection",
+	params=yolo_params,
+	project="door-defect-detection",
+)
+
+with tracker:
+	tracker.log_metric("mAP50", 0.74)
+```
+
+Any fields that are not part of the strict config schema are preserved in `extra_params` and logged under `extra.*`.
 
 ## Two-step defect identification flow
 
@@ -310,6 +419,16 @@ Teams should navigate artifacts from MLflow UI and run metadata, not by hardcodi
 - log_confusion_matrix(image_path)
 - log_validation_images(dir_path)
 
+## Integration checklist for teams
+
+- Use `with ... as tracker:` around a full train/eval run.
+- Keep one run per training attempt.
+- Log epoch-level metrics with `step=epoch`.
+- Log your best model artifact (`log_model` or `log_best_model`).
+- Use `register_name` only for models intended for shared registry usage.
+- Put script-specific knobs in `extra_params` (or pass them via dict factories).
+- Never log secrets or internal confidential values.
+
 ## Troubleshooting
 
 ### No run visible in MLflow UI
@@ -328,3 +447,8 @@ Teams should navigate artifacts from MLflow UI and run metadata, not by hardcodi
 
 - GPU tags are best-effort and depend on runtime tools such as nvidia-smi or nvcc
 - Runs continue even when GPU tag collection is unavailable
+
+## Maintainer notes
+
+- `tests/sample/` contains real team reference scripts and is intentionally not collected by pytest.
+- CI/unit tests validate SDK behavior and compatibility adapters without requiring heavyweight runtime dependencies such as YOLO or Torch.
