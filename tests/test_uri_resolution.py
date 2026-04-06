@@ -1,3 +1,5 @@
+import pytest
+
 from mltracker.runtime.env import resolve_tracking_uri
 
 
@@ -22,8 +24,9 @@ def test_mlflow_env_fallback(monkeypatch):
     assert resolve_tracking_uri(None) == "http://mlflow-env"
 
 
-def test_internal_default(monkeypatch):
+def test_raises_when_unset(monkeypatch):
     monkeypatch.delenv("MLTRACK_TRACKING_URI", raising=False)
     monkeypatch.delenv("MLFLOW_TRACKING_URI", raising=False)
 
-    assert resolve_tracking_uri(None) == "http://lab.l2m.internal:5000"
+    with pytest.raises(ValueError):
+        resolve_tracking_uri(None)

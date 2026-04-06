@@ -15,4 +15,7 @@ def resolve_tracking_uri(explicit_uri: str | None = None) -> str:
     if mlflow_uri:
         return mlflow_uri
 
-    return "http://lab.l2m.internal:5000"
+    raise ValueError(
+        "MLflow tracking URI is not configured. "
+        "Provide tracking_uri explicitly or set MLTRACK_TRACKING_URI/MLFLOW_TRACKING_URI."
+    )

@@ -33,7 +33,7 @@ def test_start_logs_params_and_tags(monkeypatch, config):
     monkeypatch.setattr("mltracker.trackers.base.mlflow.set_tags", lambda t: calls.__setitem__("tags", t))
     monkeypatch.setattr("mltracker.trackers.base.collect_system_tags", lambda: {"system.python": "3.11"})
 
-    tracker = BaseTracker("exp", config)
+    tracker = BaseTracker("exp", config, tracking_uri="http://mlflow.test")
     tracker.start()
 
     assert calls["params"]["project"] == "vision"
@@ -51,7 +51,7 @@ def test_context_marks_failed_on_exception(monkeypatch, config):
     monkeypatch.setattr("mltracker.trackers.base.collect_system_tags", lambda: {})
     monkeypatch.setattr("mltracker.trackers.base.mlflow.end_run", lambda status=None: statuses.append(status))
 
-    tracker = BaseTracker("exp", config)
+    tracker = BaseTracker("exp", config, tracking_uri="http://mlflow.test")
     with pytest.raises(RuntimeError):
         with tracker:
             raise RuntimeError("boom")
@@ -72,7 +72,7 @@ def test_log_helpers_route_artifacts(monkeypatch, config, tmp_path: Path):
     monkeypatch.setattr("mltracker.trackers.base.mlflow.log_artifact", lambda p, artifact_path=None: files.append((p, artifact_path)))
     monkeypatch.setattr("mltracker.trackers.base.mlflow.log_artifacts", lambda p, artifact_path=None: dirs.append((p, artifact_path)))
 
-    tracker = BaseTracker("exp", config)
+    tracker = BaseTracker("exp", config, tracking_uri="http://mlflow.test")
     tracker.log_confusion_matrix(cm)
     tracker.log_validation_images(val_dir)
 

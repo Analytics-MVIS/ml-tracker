@@ -13,13 +13,43 @@ The goal is simple: teams import mltracker and never call MLflow directly. This 
 - Context manager and decorator patterns for reliable run lifecycle handling
 - Optional model registration in MLflow Model Registry
 
-## Install
+## Installation modes
 
-Internal GitLab install:
+Choose one of these modes depending on whether you are using the SDK or contributing to it.
+
+### 1. Use mltracker in your training project (recommended)
+
+Install from GitHub using a release tag:
 
 ```bash
-pip install git+ssh://git@gitlab.internal/ml-team/mltrack.git@v0.2.0
+pip install git+https://github.com/Analytics-MVIS/ml-tracker.git@v0.2.0
 ```
+
+For strict reproducibility, pin to a commit SHA instead of a tag:
+
+```bash
+pip install git+https://github.com/Analytics-MVIS/ml-tracker.git@<commit-sha>
+```
+
+Use this path for all model teams that only need to log experiments.
+
+### 2. Contribute to mltracker SDK (maintainers)
+
+Clone and install in editable mode:
+
+```bash
+git clone https://github.com/Analytics-MVIS/ml-tracker.git
+cd ml-tracker
+pip install -e .[dev]
+```
+
+Run tests locally:
+
+```bash
+pytest -q
+```
+
+Use this path only if you are changing mltracker code.
 
 ## Tracking URI behavior
 
@@ -28,9 +58,25 @@ Tracker URI resolution priority:
 1. Explicit tracking_uri argument on tracker
 2. MLTRACK_TRACKING_URI
 3. MLFLOW_TRACKING_URI
-4. http://lab.l2m.internal:5000
+4. no fallback (raises configuration error)
 
-This means teams can run with no extra setup in most internal environments.
+You must provide a server URL either by environment variable or explicitly in tracker initialization.
+
+Example with environment variable:
+
+```bash
+export MLTRACK_TRACKING_URI="https://your-mlflow-server:5000"
+```
+
+Example passing explicitly in code:
+
+```python
+tracker = YoloTracker(
+	experiment_name="YOLO",
+	config=cfg,
+	tracking_uri="https://your-mlflow-server:5000",
+)
+```
 
 ## Quick start (YOLO)
 
@@ -51,7 +97,11 @@ cfg = YoloConfig(
 	extra_params={"team": "vision", "ticket": "ML-341"},
 )
 
-with YoloTracker(experiment_name="YOLO", config=cfg) as tracker:
+with YoloTracker(
+	experiment_name="YOLO",
+	config=cfg,
+	tracking_uri="https://your-mlflow-server:5000",
+) as tracker:
 	tracker.log_metric("mAP50", 0.72)
 	tracker.log_metric("mAP50-95", 0.46)
 
@@ -214,7 +264,7 @@ Teams should navigate artifacts from MLflow UI and run metadata, not by hardcodi
 ### No run visible in MLflow UI
 
 - Confirm URL resolution by explicitly setting tracking_uri in tracker init
-- Confirm network access to http://lab.l2m.internal:5000
+- Confirm network access to your MLflow server URL
 - Check experiment name used in tracker
 
 ### Model not in registry

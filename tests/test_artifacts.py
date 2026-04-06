@@ -41,7 +41,7 @@ def test_log_best_model_logs_and_registers_with_custom_name(monkeypatch, tmp_pat
     )
     monkeypatch.setattr("mltracker.trackers.base.mlflow.set_tag", lambda k, v: tags.__setitem__(k, v))
 
-    tracker = BaseTracker("exp", cfg)
+    tracker = BaseTracker("exp", cfg, tracking_uri="http://mlflow.test")
     tracker.log_best_model(model_dir, model_name="detector-v1", register_name="yolo-prod")
 
     assert len(artifacts) == 2
@@ -86,7 +86,7 @@ def test_log_model_logs_with_explicit_name_and_registers(monkeypatch, tmp_path: 
     )
     monkeypatch.setattr("mltracker.trackers.base.mlflow.set_tag", lambda k, v: tags.__setitem__(k, v))
 
-    tracker = BaseTracker("exp", cfg)
+    tracker = BaseTracker("exp", cfg, tracking_uri="http://mlflow.test")
     tracker.log_model(model_file, model_name="classifier-main", register_name="cls-prod")
 
     assert artifacts[0][0].endswith("classifier-main.pt")
@@ -110,7 +110,7 @@ def test_log_model_raises_for_missing_file(tmp_path: Path):
         lr0=0.01,
         optimizer="SGD",
     )
-    tracker = BaseTracker("exp", cfg)
+    tracker = BaseTracker("exp", cfg, tracking_uri="http://mlflow.test")
 
     with pytest.raises(FileNotFoundError):
         tracker.log_model(tmp_path / "missing.pt", model_name="missing")
